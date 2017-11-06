@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html>
+ <head>
+     <script src="https://d3js.org/d3.v4.min.js"></script>
+	  <meta charset="utf-8">
+	  <style>
+	  	div.tooltip {	
+				    position: absolute;			
+				    text-align: center;			
+				    width: 150px;					
+				    height: 55px;					
+				    padding: 2px;				
+				    font: 12px sans-serif;		
+				    background: lightsteelblue;	
+				    border: 0px;		
+				    border-radius: 8px;			
+				    pointer-events: none;	
+				    line-height:1.5em;		
+				}
+	  </style>
+
+</head>
+<body>
+	
+	<svg width="1150" height="300"></svg>
+	<chart2 ng-model="data" style="display:block;" id="plot1" class="ng-pristine ng-valid">
+        <!--<svg width="950" height="100" style="right: 0px;">Some data</svg>-->
+    </chart2>
+	<select id="flter" name="flter" onchange="updateData(this.id)" >
+		<svg1 width="950" height= "400"></svg1>
+		<option value="">select Data</option>
+		<option value="final_cftc_f.csv">CFTC_Futures</option>
+		<option value="final_cftc_c.csv">CFTC_Futures_options</option>
+		<option value="final_brent_ice.csv">ICE_DATA</option>
+	</select>
+	<select id="flter_col" class="6 columns"> 
+		<svg1 width="950" height= "400"></svg1>
+		<option value="">select Row</option>
+		<option value="CRUDE OIL, LIGHT SWEET-WTI - ICE FUTURES EUROPE">"CRUDE OIL, LIGHT SWEET-WTI - ICE FUTURES EUROPE"</option>
+		<option value="CRUDE OIL, LIGHT SWEET - NEW YORK MERCANTILE EXCHANGE">"CRUDE OIL, LIGHT SWEET - NEW YORK MERCANTILE EXCHANGE"</option>
+		<option value="ICE Brent Crude Futures and Options - ICE Futures Europe">"ICE Brent Crude Futures and Options - ICE Futures Europe"</option>
+		<option value="ICE Brent Crude Futures - ICE Futures Europe">"ICE Brent Crude Futures - ICE Futures Europe"</option>
+	</select>
+	<script>
+		
+		var svg = d3.select("svg"),
+		margin = {top: 20, right:100, bottom:30, left:70},
+		width = +svg.attr("width") - margin.left -margin.right,
+		height = +svg.attr("height") -margin.top -margin.bottom,
+		g= svg.append("g").attr("transform","translate("+margin.left+","+margin.top+")");
+		var parseTime = d3.timeParse("%y%m%d");
+		var parseDate = d3.timeFormat("%Y-%B-%d");
+
+		var line = g.append("g").attr("class", "linegroup");
+        
+		var chart2 = d3.select("chart2")
+        .append("svg")
+        .attr("width", width + margin.left + margin.right)
+        .attr("height", height + margin.top + margin.bottom)
+        .append("g")
+        .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+		var linet = chart2.append("g").attr("class", "line1group");
+
+
+		var x = d3.scaleTime().rangeRound([0, width-50]);
+		var y = d3.scaleLinear().rangeRound([height,0]);
+		var y1 = d3.scaleLinear().rangeRound([height,0]);
+		var ysp = d3.scaleLinear().rangeRound([height,0]);
+		
+		
+		var line1 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y(d.Swap_net);});
+
+		var line2 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y(d.Managed_net);});
+
+		var line3 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y(d.Prod_net);});
+
+		var line4 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y(d.other_net);});
+
+		var line5 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y1(d.Swap_ratio);});
+
+		var line6 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y1(d.Managed_ratio);});
+
+        var line7 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return y1(d.Prod_ratio);});
+
+		var line8 = d3.line()
+			.x(function(d) {return x(d.datetime);})
+			.y(function(d) {return ysp(d.spot_price);});
+
+		function updateData(s){
+			var s = document.getElementById(s);
+			var filename = s.value;
+			console.log(filename);
+			var selectVal ={};
+			var dataf;
+
+		  d3.csv(filename, function(data) {
+			
+			d3.select('#flter_col').on('change',searchnode);
+			
+			function searchnode(){
+
+				var value = d3.select(this).property("Market_and_Exchange_Names");
+					// alert(value);
+				selectVal = d3.select(this).property('value');
+		
+				dataf =data.filter(function(row){
+				return row["Market_and_Exchange_Names"] == selectVal;
+				});
+			
+			dataf.forEach(function(d) {
+				d.datetime = parseTime(d.As_of_Date_In_Form_YYMMDD);	
+				d.parsedate = parseDate(d.datetime);
+				d.Open_Interest_All = +d.Open_Interest_All;
+				d.Market_and_Exchange_Names = d['Market_and_Exchange_Names'];
+				d.Swap_net = +d.Swap_net;
+				d.Managed_net = +d.Managed_net;
+				d.other_net = +d.other_net;
+				d.Prod_net = +d.Prod_net;
+				d.spot_price = +d.spot_price;
+				d.Managed_ratio = +d.Managed_ratio;
+				d.other_ratio = +d.other_ratio;
+				d.Prod_ratio = +d.Prod_ratio;
+			}, this);
+
+			
+		initAxis();
+        function initAxis()
+		{
+		  var yminp = d3.min(dataf, function(d) { return d.Prod_net})
+		  var ymins = d3.min(dataf, function(d) { return d.Swap_net}) 
+		  var yminm = d3.min(dataf, function(d) { return d.Managed_net}) 
+		  //var ymino = d3.min(data, function(d) { return d.other_net})  
+		  var ymin = d3.min([yminm,yminp,ymins]);
+		  var ymaxp = d3.max(dataf, function(d) { return d.Prod_net})
+		  var ymaxs = d3.max(dataf, function(d) { return d.Swap_net}) 
+		  var ymaxm = d3.max(dataf, function(d) { return d.Managed_net}) 
+		  //var ymaxo = d3.max(data, function(d) { return d.other_net})  
+		  var ymax = d3.max([ymaxm,ymaxp,ymaxs]);
+		  x.domain(d3.extent(dataf, function(d) {return d.datetime;}));
+		  y.domain([ymin,ymax]);
+          //y.domain(d3.extent(data, function(d) {return Math.min(d.Swap_net, d.Managed_net,d.other_net,d.Prod_net);}));
+		  var y1minp = d3.min(dataf, function(d) { return d.Prod_ratio})
+		 // var y1mins = d3.min(data, function(d) { return d.Swap_ratio}) 
+		  var y1minm = d3.min(dataf, function(d) { return d.Managed_ratio}) 
+		  //var y1mino = d3.min(data, function(d) { return d.other_ratio})  
+		  var y1min = d3.min([y1minm,y1minp,]);
+		  var y1maxp = d3.max(dataf, function(d) { return d.Prod_ratio})
+		 // var y1maxs = d3.max(data, function(d) { return d.Swap_ratio}) 
+		  var y1maxm = d3.max(dataf, function(d) { return d.Managed_ratio}) 
+		  //var y1maxo = d3.max(data, function(d) { return d.other_ratio})  
+		  var y1max = d3.max([y1maxm,y1maxp]);
+		//   x.domain(d3.extent(data, function(d) {return d.As_of_Date_In_Form_YYMMDD;}));
+		  y1.domain([y1min,y1max]);
+		  ysp.domain(d3.extent(dataf, function(d) {return d.spot_price;}));
+
+		}
+		  var dataNest = d3.nest()
+			.key(function(d) {return d.Market_and_Exchange_Names;})
+			.entries(dataf);
+			if(dataNest.length == 0){
+
+          		line.selectAll("path").remove();
+          		line.selectAll("circle").remove(); 
+          		linet.selectAll("path").remove();
+          		linet.selectAll("circle").remove(); 
+
+          	}
+		dataNest.forEach(function(d){
+			console.log(d);
+
+			// var div = d3.select("body").append("div")   
+			// 	.attr("class", "tooltip")               
+			// 	.style("opacity", 0);
+			// g.selectAll("dot")
+            // .data(data)
+            // .enter()
+            // .append("circle")
+            // .attr("r", 3.5)
+            // .attr("cx", function(d) { return x(d.As_of_Date_In_Form_YYMMDD); })
+            // .attr("cy", function(d) { return y(d.Swap_net, d.Managed_net,d.other_net,d.Prod_net); })
+            // .on("mouseover",function(d){
+            //     div.transition()
+            //         .duration(200)
+            //         .style("opacity", .9);
+            // })
+            // .on("mouseout", function(d){
+            //     div.transition()
+            //         .duration(500)
+            //         .style("opacity", 0);
+            // });        
+
+           	
+            g.selectAll("g.xaxis").remove();
+		    g.append("g")
+			    .attr("class","xaxis")
+				.attr("transform", "translate(0,"+height+")")
+				.call(d3.axisBottom(x))
+				.select(".domain")
+				.append("text")
+				.text("time");
+			chart2.selectAll("g.xaxis").remove();
+		  	chart2.append("g")
+			  	.attr("class","xaxis")
+				.attr("transform", "translate(0,"+height+")")
+				.call(d3.axisBottom(x))
+				.select(".domain")
+				.append("text")
+				.text("time");
+		  	g.selectAll("g.yaxis").remove();	
+		  	g.append("g")
+				.attr("class","yaxis")
+				.call(d3.axisLeft(y))
+				.append("text")
+				.attr("transform", "rotate(-90)")
+				.attr("y", 6)
+				.attr("dy", "0.71em")
+				.attr("text-anchor", "end")
+				.text("Net Values");
+
+		  	chart2.selectAll("g.yaxis").remove();
+		  	chart2.append("g")
+				.attr("class","yaxis")
+				.call(d3.axisLeft(y1))
+				.append("text")
+				.attr("transform", "rotate(-90)")
+				.attr("y", 6)
+				.attr("dy", "0.71em")
+				.attr("text-anchor", "end")
+				.text("Ratios ");
+			chart2.selectAll("g.y-axis").remove();	
+		   	chart2.append("g")
+				.call(d3.axisRight(ysp))
+				.attr("class","y-axis")
+				.attr("transform", "translate(" + (width-50) + " ,0)")
+				.style("fill","purple")
+				.append("text")
+				.attr("y", 20)
+				.attr("dy", "1.31em")
+				.attr("text-anchor", "end")
+				.attr("transform", "rotate(-90)")
+				.text("Spot price");
+
+          	line.selectAll("path").remove();
+
+		  	line.append("path")
+			  	.attr("class", "line")
+				.datum(dataf)
+				.attr("fill", "none")
+				.attr("stroke", "steelblue")
+				.attr("d",line1);
+
+			console.log(dataf);
+			
+		  	line.append("path")
+		  	.attr("class", "line")
+			.datum(dataf)
+			.attr("fill", "none")
+			.attr("stroke", "red")
+			.attr("d",line2);
+
+		  line.append("path")
+		  	.attr("class", "line")
+			.datum(dataf)
+			.attr("fill", "none")
+			.attr("stroke", "green")
+			.attr("d",line3);
+		
+		// chart 2
+		linet.selectAll("path").remove();
+
+		  linet.append("path")
+		  	.attr("class", "line")
+			.datum(dataf)
+			.attr("fill", "none")
+			.attr("stroke", "red")
+			.attr("d",line6);
+ 
+          linet.append("path")
+		  	.attr("class", "line")
+			.datum(dataf)
+			.attr("fill", "none")
+			.attr("stroke", "green")
+			.attr("d",line7);
+
+		  linet.append("path")
+				.attr("class", "line")
+				.datum(dataf)
+				.attr("fill", "none")
+				.attr("stroke", "purple")
+				.attr("d",line8);
+
+			
+
+			chart2.exit()
+			.attr("class","exit")
+			.transition(750)
+			.remove();
+
+			var xAxis = d3.axisBottom(x);
+			g.selectAll("g.x.axis")
+			  .call(xAxis);
+
+			var div = d3.select("body").append("div")	
+			    .attr("class", "tooltip")				
+			    .style("opacity", 0);
+
+			//dots and tooltip of svg.   
+				line.selectAll("circle").remove(); 
+				line.selectAll("dot")
+		           	.data(dataf)
+		           	.enter()
+		           	.append("circle")
+		           	.attr("r",5)
+		           	.attr("cx", function(d){return x(d.datetime);})
+		           	.attr("cy", function(d){return y(d.Prod_net); })
+					.attr("fill","green")
+		           	.on("mouseover", function(d){
+		           		 div.transition()		
+			                .duration(200)		
+			                .style("opacity", 1);		
+			             div.html("Date: "+d.parsedate + "<br/>"  +"Prod_Net: " + d.Prod_net)	
+			                .style("top", (d3.event.pageY-10) + "px").style("left", (d3.event.pageX+10)+"px");
+		           	})
+		           	.on("mouseout", function(d){
+		           		 div.transition()		
+			                .duration(500)		
+			                .style("opacity", 0);
+		           	});
+		        line.selectAll("dot")
+		           	.data(dataf)
+		           	.enter()
+		           	.append("circle")
+		           	.attr("r",5)
+		           	.attr("cx", function(d){return x(d.datetime);})
+		           	.attr("cy", function(d){return y(d.Swap_net); })
+					.attr("fill","steelblue")
+		           	.on("mouseover", function(d){
+		           		 div.transition()		
+			                .duration(200)		
+			                .style("opacity", 1);		
+			             div.html("Date: "+d.parsedate + "<br/>"  +"Swap_Net: " + d.Swap_net)	
+			                .style("top", (d3.event.pageY-10) + "px").style("left", (d3.event.pageX+10)+"px");
+		           	})
+		           	.on("mouseout", function(d){
+		           		 div.transition()		
+			                .duration(500)		
+			                .style("opacity", 0);
+		           	});   		
+		        line.selectAll("dot")
+		           	.data(dataf)
+		           	.enter()
+		           	.append("circle")
+		           	.attr("r",5)
+		           	.attr("cx", function(d){return x(d.datetime);})
+		           	.attr("cy", function(d){return y(d.Managed_net); })
+					.attr("fill","red")
+		           	.on("mouseover", function(d){
+		           		 div.transition()		
+			                .duration(200)		
+			                .style("opacity", 1);		
+			             div.html("Date: "+d.parsedate + "<br/>"  +"Managed_Net: " + d.Managed_net)	
+			                .style("top", (d3.event.pageY-10) + "px").style("left", (d3.event.pageX+10)+"px");
+		           	})
+		           	.on("mouseout", function(d){
+		           		 div.transition()		
+			                .duration(500)		
+			                .style("opacity", 0);
+		           	});   	
+
+				//dots and tooltip of chart2.   
+				linet.selectAll("circle").remove(); 
+				linet.selectAll("dot")
+		           	.data(dataf)
+		           	.enter()
+		           	.append("circle")
+		           	.attr("r",5)
+		           	.attr("cx", function(d){return x(d.datetime);})
+		           	.attr("cy", function(d){return y1(d.Managed_ratio); })
+					.attr("fill","red")
+		           	.on("mouseover", function(d){
+		           		 div.transition()		
+			                .duration(200)		
+			                .style("opacity", 1);		
+			             div.html("Date: "+d.parsedate + "<br/>"  +"Managed_Ratio: " + d.Managed_ratio)	
+			                .style("top", (d3.event.pageY-10) + "px").style("left", (d3.event.pageX+10)+"px");
+		           	})
+		           	.on("mouseout", function(d){
+		           		 div.transition()		
+			                .duration(500)		
+			                .style("opacity", 0);
+		           	});
+
+		        linet.selectAll("dot")
+		           	.data(dataf)
+		           	.enter()
+		           	.append("circle")
+		           	.attr("r",5)
+		           	.attr("cx", function(d){return x(d.datetime);})
+		           	.attr("cy", function(d){return y1(d.Prod_ratio); })
+					.attr("fill","green")
+		           	.on("mouseover", function(d){
+		           		 div.transition()		
+			                .duration(200)		
+			                .style("opacity", 1);		
+			             div.html("Date: "+d.parsedate + "<br/>"  +"Prod_Ratio: "  + d.Prod_ratio)	
+			                .style("top", (d3.event.pageY-10) + "px").style("left", (d3.event.pageX+10)+"px");
+		           	})
+		           	.on("mouseout", function(d){
+		           		 div.transition()		
+			                .duration(500)		
+			                .style("opacity", 0);
+		           	});
+
+		        linet.selectAll("dot")
+		           	.data(dataf)
+		           	.enter()
+		           	.append("circle")
+		           	.attr("r",5)
+		           	.attr("cx", function(d){return x(d.datetime);})
+		           	.attr("cy", function(d){return ysp(d.spot_price); })
+					.attr("fill","purple")
+		           	.on("mouseover", function(d){
+		           		 div.transition()		
+			                .duration(200)		
+			                .style("opacity", 1);		
+			             div.html("Date: "+d.parsedate + "<br/>"  +"Spot_Price: "  + d.spot_price)	
+			                .style("top", (d3.event.pageY-10) + "px").style("left", (d3.event.pageX+10)+"px");
+		           	})
+		           	.on("mouseout", function(d){
+		           		 div.transition()		
+			                .duration(500)		
+			                .style("opacity", 0);
+		           	});   	   	
+
+		// svg legend           	
+
+		var legend = d3.select('svg')
+					    .append("g")
+					    .attr('class', 'legend')
+					    .attr('transform', function(d, i) {
+					        var height = 80;
+					        var x = width;
+					        var y = i * height;
+					        return 'translate(' + x + ',' + y + ')';
+					    });   
+
+		legend.append('rect')
+		    .attr('width', 10)
+		    .attr('height', 10)
+		    .attr("x", 50)
+		    .attr("y", 10)
+		    .style('fill', "steelblue")
+
+		legend.append("text")
+            .attr("x", 70)
+            .attr("z-index", 1)
+            .attr("y", 15)
+            .attr("dy", "0.32em")
+            .text("Swap_net");    
+
+        legend.append('rect')
+		    .attr('width', 10)
+		    .attr('height', 10)
+		    .attr("x", 50)
+		    .attr("y", 30)
+		    .style('fill', "red")
+
+		legend.append("text")
+            .attr("x", 70)
+            .attr("z-index", 1)
+            .attr("y", 35)
+            .attr("dy", "0.32em")
+            .text("Managed_net");    
+
+        legend.append('rect')
+		    .attr('width', 10)
+		    .attr('height', 10)
+		    .attr("x", 50)
+		    .attr("y", 50)
+		    .style('fill', "green")
+
+		legend.append("text")
+            .attr("x", 70)
+            .attr("z-index", 1)
+            .attr("y", 55)
+            .attr("dy", "0.32em")
+            .text("Prod_net");    
+
+        // chart2 legend    
+
+		var legend1 = chart2.append("g")
+					    .attr('class', 'legend')
+					    .attr('transform', function(d, i) {
+					        
+					        var x = width;
+					        var y = 100;
+					        return 'translate(' + x + ',' + y + ')';
+					    });   
+
+		legend1.append('rect')
+		    .attr('width', 10)
+		    .attr('height', 10)
+		    .attr("x", -20)
+		    .attr("y", 10)
+		    .style('fill', "red")
+
+		legend1.append("text")
+            .attr("x", 0)
+            .attr("z-index", 1)
+            .attr("y", 15)
+            .attr("dy", "0.32em")
+            .text("Managed_ratio");    
+
+        legend1.append('rect')
+		    .attr('width', 10)
+		    .attr('height', 10)
+		    .attr("x", -20)
+		    .attr("y", 30)
+		    .style('fill', "green")
+
+		legend1.append("text")
+            .attr("x", 0)
+            .attr("z-index", 1)
+            .attr("y", 35)
+            .attr("dy", "0.32em")
+            .text("Prod_ratio");    
+
+        legend1.append('rect')
+		    .attr('width', 10)
+		    .attr('height', 10)
+		    .attr("x", -20)
+		    .attr("y", 50)
+		    .style('fill', "purple")
+
+		legend1.append("text")
+            .attr("x", 0)
+            .attr("z-index", 1)
+            .attr("y", 55)
+            .attr("dy", "0.32em")
+            .text("spot_price");    
+
+        })}});}
+
+	</script>
+</body>
